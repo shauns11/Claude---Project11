@@ -1,0 +1,269 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\CLAUDE\Projects\Project11\output/results.log
+  log type:  text
+ opened on:   3 Oct 2026, 16:41:04
+
+. 
+. *load survey_data:
+. use "./data/survey_data.dta", clear
+
+. 
+. *confirm variables exist before proceeding (design variables, outcome and gro
+> up):
+. describe wt_nurse psu strata omsysval sex
+
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+-------------------------------------------------------------------------------
+wt_nurse        float   %9.0g                 
+psu             float   %9.0g                 Primary sampling unit
+strata          float   %9.0g                 Stratum
+omsysval        float   %9.0g                 
+sex             float   %9.0g      sexlbl     
+
+. summarize wt_nurse psu strata omsysval
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+    wt_nurse |      2,000    1.479734    .6071837         -1   2.499295
+         psu |      2,000       100.5    57.74874          1        200
+      strata |      2,000           3    1.414567          1          5
+    omsysval |      2,000    129.1071     18.6558         -8   191.3759
+
+. tab sex, missing
+
+        sex |      Freq.     Percent        Cum.
+------------+-----------------------------------
+     Female |        988       49.40       49.40
+       Male |      1,012       50.60      100.00
+------------+-----------------------------------
+      Total |      2,000      100.00
+
+. 
+. *set negative values on all variables to missing
+. mvdecode _all, mv(-9/-1)
+    wt_nurse: 14 missing values generated
+      income: 2 missing values generated
+      wealth: 2 missing values generated
+         bmi: 9 missing values generated
+     bmivg52: 9 missing values generated
+      smoker: 4 missing values generated
+    omsysval: 14 missing values generated
+    omdiaval: 14 missing values generated
+
+. misstable summarize
+                                                               Obs<.
+                                                +------------------------------
+               |                                | Unique
+      Variable |     Obs=.     Obs>.     Obs<.  | values        Min         Max
+  -------------+--------------------------------+------------------------------
+      wt_nurse |        14               1,986  |   >500   .5015063    2.499295
+        income |         2               1,998  |   >500   369.6886    26086.85
+        wealth |         2               1,998  |   >500   416.2556    19888.04
+           bmi |         9               1,991  |   >500   7.287168     57.8713
+       bmivg52 |         9               1,991  |      4          1           4
+        smoker |         4               1,996  |      2          0           1
+      omsysval |        14               1,986  |   >500   78.76292    191.3759
+      omdiaval |        14               1,986  |   >500   53.26995    123.6178
+  -----------------------------------------------------------------------------
+
+. 
+. *check nurse weight after recoding (missing = did not attend nurse visit / in
+> valid)
+. summarize wt_nurse
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+    wt_nurse |      1,986    1.497214    .5723615   .5015063   2.499295
+
+. count if missing(wt_nurse)
+  14
+
+. count if wt_nurse <= 0 & !missing(wt_nurse)
+  0
+
+. count if missing(omsysval)
+  14
+
+. count if missing(omsysval) & !missing(wt_nurse)
+  0
+
+. 
+. *===================================
+. *Nurse visit: svyset with wt_nurse
+. *===================================
+. 
+. svyset, clear
+
+. svyset psu [pweight=wt_nurse], strata(strata)
+
+Sampling weights: wt_nurse
+             VCE: linearized
+      Subpop. df: off
+     Single unit: missing
+        Strata 1: strata
+ Sampling unit 1: psu
+           FPC 1: <zero>
+
+. svyset
+
+Sampling weights: wt_nurse
+             VCE: linearized
+      Subpop. df: off
+     Single unit: missing
+        Strata 1: strata
+ Sampling unit 1: psu
+           FPC 1: <zero>
+
+. svydes
+
+Survey: Describing stage 1 sampling units
+
+Sampling weights: wt_nurse
+             VCE: linearized
+      Subpop. df: off
+     Single unit: missing
+        Strata 1: strata
+ Sampling unit 1: psu
+           FPC 1: <zero>
+
+                                    Number of obs per unit
+ Stratum   # units     # obs       Min      Mean       Max
+----------------------------------------------------------
+       1        40       400        10      10.0        10
+       2        39       390        10      10.0        10
+       3        40       396         6       9.9        10
+       4        40       400        10      10.0        10
+       5        40       400        10      10.0        10
+----------------------------------------------------------
+       5       199     1,986         6      10.0        10
+
+                          14 = # obs with missing values in the 
+                    --------   survey characteristics
+                       2,000
+
+. svydes, single
+
+Survey: Describing strata with a single sampling unit in stage 1
+
+Sampling weights: wt_nurse
+             VCE: linearized
+      Subpop. df: off
+     Single unit: missing
+        Strata 1: strata
+ Sampling unit 1: psu
+           FPC 1: <zero>
+
+                                    Number of obs per unit
+ Stratum   # units     # obs       Min      Mean       Max
+----------------------------------------------------------
+----------------------------------------------------------
+                 0
+
+. 
+. *mean SBP (overall)
+. svy: mean omsysval
+(running mean on estimation sample)
+
+Survey: Mean estimation
+
+Number of strata =   5            Number of obs   =      1,986
+Number of PSUs   = 199            Population size = 2,973.4673
+                                  Design df       =        194
+
+--------------------------------------------------------------
+             |             Linearized
+             |       Mean   std. err.     [95% conf. interval]
+-------------+------------------------------------------------
+    omsysval |   130.1193   .3664394      129.3966     130.842
+--------------------------------------------------------------
+
+. etable, cstat(_r_b, nformat(%7.2f)) cstat(_r_ci, nformat(%7.2f)) cstat(_r_se,
+>  nformat(%7.2f)) export("./output/results.txt", replace)
+
+---------------------------------------
+                             Mean      
+---------------------------------------
+omsysval                         130.12
+                       [129.40  130.84]
+                                 (0.37)
+Number of observations             1986
+---------------------------------------
+(collection ETable exported to file ./output/results.txt)
+
+. 
+. *mean SBP separately for men and women
+. svy: mean omsysval, over(sex)
+(running mean on estimation sample)
+
+Survey: Mean estimation
+
+Number of strata =   5              Number of obs   =      1,986
+Number of PSUs   = 199              Population size = 2,973.4673
+                                    Design df       =        194
+
+----------------------------------------------------------------
+               |             Linearized
+               |       Mean   std. err.     [95% conf. interval]
+---------------+------------------------------------------------
+c.omsysval@sex |
+       Female  |   130.4989   .4974007      129.5179    131.4799
+         Male  |    129.747   .4908696      128.7788    130.7151
+----------------------------------------------------------------
+
+. etable, cstat(_r_b, nformat(%7.2f)) cstat(_r_ci, nformat(%7.2f)) cstat(_r_se,
+>  nformat(%7.2f)) export("./output/results.txt", append)
+
+---------------------------------------
+                             Mean      
+---------------------------------------
+omsysval @ sex                         
+  Female                         130.50
+                       [129.52  131.48]
+                                 (0.50)
+  Male                           129.75
+                       [128.78  130.72]
+                                 (0.49)
+Number of observations             1986
+---------------------------------------
+(collection ETable exported to file ./output/results.txt)
+
+. 
+. *test of difference between men and women
+. test _b[c.omsysval@0bn.sex] = _b[c.omsysval@1.sex]
+
+Adjusted Wald test
+
+ ( 1)  c.omsysval@0bn.sex - c.omsysval@1.sex = 0
+
+       F(  1,   194) =    1.29
+            Prob > F =    0.2581
+
+. lincom _b[c.omsysval@1.sex] - _b[c.omsysval@0bn.sex]
+
+ ( 1)  - c.omsysval@0bn.sex + c.omsysval@1.sex = 0
+
+------------------------------------------------------------------------------
+        Mean | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+         (1) |  -.7519549   .6630331    -1.13   0.258    -2.059634    .5557238
+------------------------------------------------------------------------------
+
+. 
+. *Capture date and time, display them, then close the log file.
+. local date `c(current_date)'
+
+. local time `c(current_time)'
+
+. display _newline "Run `date' at `time'"
+
+Run 3 Oct 2026 at 16:41:09
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\CLAUDE\Projects\Project11\output/results.log
+  log type:  text
+ closed on:   3 Oct 2026, 16:41:09
+-------------------------------------------------------------------------------
