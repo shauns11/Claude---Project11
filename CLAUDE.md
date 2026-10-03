@@ -155,7 +155,7 @@ git push                   # upload to GitHub
 
 ### What is tracked
 
-- Tracked: `code\` (Stata do-files), `output\` (logs, tables, figures), `examples\` (Examples.do), `CLAUDE.md`, `.gitignore`
+- Tracked: `code\` (Stata do-files), `output\` (logs, tables, figures), `examples\` (Examples.do), `.claude\skills\` (stata-survey-setup, stata-survey-estimation, stata-survey-results), `CLAUDE.md`, `.gitignore`
 - Ignored (see `.gitignore`):
   - `/*.log` — root-level logs created by batch mode
   - `*.dta` — Stata datasets, anywhere in the project
